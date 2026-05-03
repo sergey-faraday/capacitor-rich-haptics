@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist/docgen-tmp"
+  },
+  "files": ["src/definitions.ts"],
+  "include": []
+}

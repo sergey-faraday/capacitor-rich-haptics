@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest a new pattern, plugin method, or DX improvement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the user-facing scenario, not the implementation. ("I want my drag handle to feel like an iOS slider" beats "add a sliderTick method".)
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behavior
+      description: A rough sketch — TypeScript signature, example call, or pattern definition.
+      render: typescript
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried instead
+      description: Existing API workarounds you considered, why they fall short.
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - "New built-in pattern"
+        - "New plugin method"
+        - "Builder / transforms helper"
+        - "React / Vue adapter"
+        - "Documentation / examples"
+        - "Other"

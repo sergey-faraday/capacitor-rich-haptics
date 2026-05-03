@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  web:
+    name: Web (build + tests + lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:coverage
+      - run: npm run lint
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+
+  ios:
+    name: iOS (pod lint)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - name: pod lib lint
+        run: pod lib lint --allow-warnings CapacitorRichHaptics.podspec
+
+  android:
+    name: Android (gradle assemble)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+
+      # Build the Android library against capacitor-android. The plugin's
+      # build.gradle declares `project(':capacitor-android')`, so we wire it
+      # up with @capacitor/android's published Gradle module before compiling.
+      - name: Set up minimal Android host project
+        run: |
+          mkdir -p .ci-android
+          cat > .ci-android/settings.gradle <<'EOF'
+          include ':capacitor-android'
+          project(':capacitor-android').projectDir = new File("$rootDir/../node_modules/@capacitor/android/capacitor")
+          include ':rich-haptics'
+          project(':rich-haptics').projectDir = new File("$rootDir/../android")
+          EOF
+          cat > .ci-android/build.gradle <<'EOF'
+          buildscript {
+            repositories { google(); mavenCentral() }
+            dependencies { classpath 'com.android.tools.build:gradle:8.7.2' }
+          }
+          allprojects {
+            repositories { google(); mavenCentral() }
+          }
+          ext {
+            minSdkVersion = 23
+            compileSdkVersion = 35
+            targetSdkVersion = 35
+            androidxAppCompatVersion = '1.7.0'
+            junitVersion = '4.13.2'
+            androidxJunitVersion = '1.2.1'
+            androidxEspressoCoreVersion = '3.6.1'
+          }
+          EOF
+          cat > .ci-android/gradle.properties <<'EOF'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m
+          EOF
+
+      - name: Install @capacitor/android for plugin compile
+        run: npm install --no-save @capacitor/android@latest
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compile plugin (gradle assemble)
+        working-directory: .ci-android
+        run: gradle :rich-haptics:assembleRelease --no-daemon

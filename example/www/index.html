@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Rich Haptics Demo</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Rich Haptics</h1>
+      <p class="engine" id="engine">Detecting engine&hellip;</p>
+    </header>
+
+    <section class="card">
+      <h2>Custom</h2>
+      <label>
+        <span>Intensity</span>
+        <input id="intensity" type="range" min="0" max="100" value="100" />
+        <output id="intensityOut">1.00</output>
+      </label>
+      <label>
+        <span>Sharpness</span>
+        <input id="sharpness" type="range" min="0" max="100" value="50" />
+        <output id="sharpnessOut">0.50</output>
+      </label>
+      <label>
+        <span>Duration (s)</span>
+        <input id="duration" type="range" min="0" max="200" value="0" />
+        <output id="durationOut">0.00</output>
+      </label>
+      <button class="primary" data-action="play">Play</button>
+      <button class="ghost" data-action="stop">Stop all</button>
+    </section>
+
+    <section class="card">
+      <h2>Live drag (continuous)</h2>
+      <p class="hint">Drag inside the pad. Vertical = intensity, horizontal = sharpness. Live <code>updateParameters</code>.</p>
+      <div id="dragPad" class="drag-pad">
+        <div class="dot" id="dragDot"></div>
+        <span class="drag-readout" id="dragReadout">0.50 / 0.50</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Presets</h2>
+      <div class="grid">
+        <button data-preset="softTap">Soft tap</button>
+        <button data-preset="sharpClick">Sharp click</button>
+        <button data-preset="scrollTick">Scroll tick</button>
+        <button data-preset="gentlePulse">Gentle pulse</button>
+        <button data-preset="success">Success</button>
+        <button data-preset="warning">Warning</button>
+        <button data-preset="error">Error</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Pattern library</h2>
+      <p class="hint">18 built-in AHAP patterns from <code>capacitor-rich-haptics/patterns</code>.</p>
+      <div class="grid" id="patternGrid"></div>
+    </section>
+
+    <section class="card">
+      <h2>Preload (zero-latency)</h2>
+      <p class="hint">Tap "Preload" once, then "Fire" multiple times — the player is pre-built natively.</p>
+      <button data-action="preload">Preload typeTick</button>
+      <button class="primary" data-action="fire">Fire (mash this)</button>
+    </section>
+
+    <section class="card">
+      <h2>AHAP from string</h2>
+      <button data-ahap-file="Heartbeat">Play <code>Heartbeat.ahap</code> (file)</button>
+      <button data-builder="boing">Build &amp; play boing</button>
+      <button data-builder="rumble">Build &amp; play rumble</button>
+    </section>
+
+    <footer>
+      <a href="https://github.com/sergeyfaraday/capacitor-rich-haptics" target="_blank" rel="noopener">github.com/sergeyfaraday/capacitor-rich-haptics</a>
+    </footer>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

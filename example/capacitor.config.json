@@ -1,0 +1,6 @@
+{
+  "appId": "com.sergeyfaraday.richhapticsdemo",
+  "appName": "Rich Haptics Demo",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}

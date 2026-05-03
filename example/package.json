@@ -1,0 +1,23 @@
+{
+  "name": "capacitor-rich-haptics-example",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Demo app for capacitor-rich-haptics — sliders for intensity/sharpness/duration, buttons for every preset, AHAP playback (file + string), engine detection.",
+  "scripts": {
+    "build": "echo 'Static site — no build step'",
+    "sync": "npx cap sync",
+    "ios": "npx cap run ios",
+    "android": "npx cap run android",
+    "open:ios": "npx cap open ios",
+    "open:android": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "capacitor-rich-haptics": "file:.."
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  }
+}

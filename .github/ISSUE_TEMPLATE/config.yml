@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or usage help
+    url: https://github.com/sergeyfaraday/capacitor-rich-haptics/discussions
+    about: For "how do I…" questions, use Discussions instead of an issue.
+  - name: Apple HIG — Playing haptics
+    url: https://developer.apple.com/design/human-interface-guidelines/playing-haptics
+    about: Apple's UX guidance on when to use haptic feedback (and when not to).

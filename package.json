@@ -1,0 +1,152 @@
+{
+  "name": "capacitor-rich-haptics",
+  "version": "0.10.0",
+  "description": "Capacitor plugin for rich, native-quality haptics. iOS Core Haptics with custom intensity, sharpness, AHAP playback, live parameter modulation, zero-latency preloading, synchronized audio, 45+ built-in patterns, pattern transformations, BPM sync, SVG visualizer, React/Vue adapters, CLI, and live playground.",
+  "main": "dist/plugin.cjs.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "unpkg": "dist/plugin.js",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/plugin.cjs.js",
+      "types": "./dist/esm/index.d.ts"
+    },
+    "./react": {
+      "import": "./dist/esm/react.js",
+      "types": "./dist/esm/react.d.ts"
+    },
+    "./vue": {
+      "import": "./dist/esm/vue.js",
+      "types": "./dist/esm/vue.d.ts"
+    },
+    "./patterns": {
+      "import": "./dist/esm/patterns.js",
+      "types": "./dist/esm/patterns.d.ts"
+    },
+    "./ahap": {
+      "import": "./dist/esm/ahap.js",
+      "types": "./dist/esm/ahap.d.ts"
+    },
+    "./transforms": {
+      "import": "./dist/esm/transforms.js",
+      "types": "./dist/esm/transforms.d.ts"
+    },
+    "./testing": {
+      "import": "./dist/esm/testing.js",
+      "types": "./dist/esm/testing.d.ts"
+    },
+    "./validate": {
+      "import": "./dist/esm/validate.js",
+      "types": "./dist/esm/validate.d.ts"
+    },
+    "./recorder": {
+      "import": "./dist/esm/recorder.js",
+      "types": "./dist/esm/recorder.d.ts"
+    },
+    "./sequence": {
+      "import": "./dist/esm/sequence.js",
+      "types": "./dist/esm/sequence.d.ts"
+    },
+    "./sync": {
+      "import": "./dist/esm/sync.js",
+      "types": "./dist/esm/sync.d.ts"
+    },
+    "./visualizer": {
+      "import": "./dist/esm/visualizer.js",
+      "types": "./dist/esm/visualizer.d.ts"
+    }
+  },
+  "files": [
+    "android/src/main/",
+    "android/build.gradle",
+    "dist/",
+    "ios/Sources",
+    "ios/Sources/**/*",
+    "bin/",
+    "CapacitorRichHaptics.podspec",
+    "CLAUDE.md",
+    "AGENT.md"
+  ],
+  "bin": {
+    "capacitor-rich-haptics": "./bin/cli.js"
+  },
+  "author": "Sergey Faraday",
+  "license": "MIT",
+  "homepage": "https://github.com/sergeyfaraday/capacitor-rich-haptics",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sergeyfaraday/capacitor-rich-haptics.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sergeyfaraday/capacitor-rich-haptics/issues"
+  },
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "native",
+    "haptics",
+    "core-haptics",
+    "ahap",
+    "vibration",
+    "ios",
+    "android",
+    "chhapticengine",
+    "react",
+    "vue"
+  ],
+  "scripts": {
+    "verify": "npm run build && npm run lint",
+    "lint": "npm run eslint && npm run prettier -- --check",
+    "fmt": "npm run eslint -- --fix && npm run prettier -- --write",
+    "eslint": "eslint . --ext ts",
+    "prettier": "prettier \"**/*.{css,html,ts,js,java}\"",
+    "build": "npm run sync-docs && npm run clean && tsc && rollup -c rollup.config.mjs && npm run docgen",
+    "docgen": "docgen --project tsconfig.docgen.json --api RichHapticsPlugin --output-json dist/docs.json",
+    "sync-docs": "node scripts/sync-docs.js",
+    "clean": "rimraf ./dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "bench": "node bench/index.cjs",
+    "watch": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    },
+    "android": {
+      "src": "android"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=6.0.0",
+    "react": ">=17.0.0",
+    "vue": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true },
+    "vue": { "optional": true }
+  },
+  "devDependencies": {
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/docgen": "^0.3.0",
+    "@ionic/eslint-config": "^0.4.0",
+    "@ionic/prettier-config": "^4.0.0",
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3",
+    "prettier-plugin-java": "^2.6.4",
+    "react": "^18.3.0",
+    "rimraf": "^6.0.1",
+    "rollup": "^4.24.0",
+    "typescript": "~5.6.0",
+    "vitest": "^2.1.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "vue": "^3.5.0"
+  }
+}

@@ -1,0 +1,91 @@
+name: Bug report
+description: Something isn't working as documented or expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please run `await RichHaptics.getDiagnostics()` and paste the output below — it makes triage 10× faster.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Clear, concise description. Include the haptic call you made and what you expected vs. what occurred.
+      placeholder: |
+        Calling RichHaptics.preset({ name: 'success' }) on iPhone 13 produces silence.
+        Expected a double-click haptic; got nothing.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Smallest code snippet that reproduces the issue.
+      render: typescript
+      placeholder: |
+        await RichHaptics.preset({ name: 'success' });
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: getDiagnostics() output
+      description: |
+        Run `console.log(await RichHaptics.getDiagnostics())` and paste the output.
+      render: json
+      placeholder: |
+        {
+          "engine": "core-haptics",
+          "engineRunning": true,
+          "preloadedCount": 0,
+          "activeContinuousPlayers": 0,
+          "registeredAudioCount": 0,
+          "lastError": null
+        }
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device + OS
+      description: Hardware and OS version. iOS only fully supports A13+ chips (iPhone 11 / iPad Pro 2020+).
+      placeholder: "iPhone 13 Pro, iOS 17.4"
+    validations:
+      required: true
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      placeholder: "0.7.0"
+    validations:
+      required: true
+
+  - type: input
+    id: capacitor-version
+    attributes:
+      label: Capacitor version
+      description: Output of `npx cap doctor` or your `@capacitor/core` version.
+      placeholder: "7.2.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Framework adapter (if any)
+      options:
+        - "Core RichHaptics only (no adapter)"
+        - "React (useHaptics / useHapticDrag)"
+        - "Vue"
+        - "Other"
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Stack traces, screen recordings (haptics aren't visible — describe what you felt), Xcode logcat output, etc.

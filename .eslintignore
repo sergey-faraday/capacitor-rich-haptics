@@ -1,0 +1,10 @@
+dist/
+coverage/
+node_modules/
+playground/
+example/
+bench/
+*.config.js
+*.config.mjs
+*.config.ts
+scripts/
