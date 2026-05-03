@@ -6,7 +6,6 @@ import UIKit
 public class RichHapticsEngine {
     private var engine: CHHapticEngine?
     private var supportsHaptics: Bool
-    private var transientPlayers: [CHHapticPatternPlayer] = []
     private var continuousPlayers: [String: CHHapticAdvancedPatternPlayer] = [:]
     private var preloaded: [String: CHHapticPatternPlayer] = [:]
     private var audioResources: [String: CHHapticAudioResourceID] = [:]
@@ -71,7 +70,11 @@ public class RichHapticsEngine {
         let pattern = try CHHapticPattern(events: [event], parameters: [])
         let player = try engine.makePlayer(with: pattern)
         try player.start(atTime: CHHapticTimeImmediate)
-        transientPlayers.append(player)
+        // No retention — transient patterns are <50ms; ARC releases the player
+        // after this scope, freeing the engine's player-channel slot. Retaining
+        // here saturates the channel pool (~32 slots) and produces
+        // CoreHaptics error -10851 ("Unable to add an additional player channel")
+        // after enough rapid plays (typewriter, breathing exercise, etc.).
     }
 
     // MARK: - Play AHAP
@@ -101,10 +104,9 @@ public class RichHapticsEngine {
     // MARK: - Stop
 
     public func stop() {
-        for player in transientPlayers {
-            try? player.stop(atTime: CHHapticTimeImmediate)
-        }
-        transientPlayers.removeAll()
+        // Transient players are <50ms fire-and-forget — by the time stop()
+        // returns they're already done. Only continuous players need to be
+        // explicitly halted.
         for (_, player) in continuousPlayers {
             try? player.stop(atTime: CHHapticTimeImmediate)
         }

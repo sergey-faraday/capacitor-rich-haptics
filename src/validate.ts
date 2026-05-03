@@ -38,7 +38,7 @@ const HAPTIC_CONTROL_RANGE_IDS = new Set(['HapticIntensityControl', 'HapticSharp
  * for a list of specific issues.
  *
  * @example
- * const json = await fetch('/api/haptics/celebration').then((r) => r.json());
+ * const json = JSON.parse(rawAhapString); // from your AHAP source
  * if (isAHAPPattern(json)) {
  *   await RichHaptics.playPattern({ pattern: json });
  * }

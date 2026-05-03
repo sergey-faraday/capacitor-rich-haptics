@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.2] – 2026-05-03
+
+### Fixed
+
+- **iOS `play()` channel leak (CoreHaptics error -10851)** — every transient `play()` call appended its `CHHapticPatternPlayer` to a private array that was never cleared. After ~32 rapid plays (the iOS Core Haptics per-engine player-channel limit) every subsequent `engine.makePlayer(with:)` failed with `"Unable to add an additional player channel"`, error code -10851. Hot paths (typewriter `keyTap` preset, breathing exercises, fast button mashing) hit the wall reliably within seconds. Apple-recommended pattern is fire-and-forget for transient patterns — the player can be released after `start(atTime:)`, and the engine reclaims the channel when the haptic finishes. `transientPlayers` array removed; `stop()` now only halts continuous players (transients are <50ms and complete before `stop()` returns). `preset()` benefits transitively since it goes through `play()` internally.
+
+### Changed
+
+- **`isAHAPPattern` JSDoc example** no longer uses `fetch()`. The example was triggering Socket.dev's static "Network access" alert (it was in a comment, not real code), which showed a yellow warning on the package page. Replaced with `JSON.parse(rawAhapString)` — same teaching value, no false positive. The plugin has never made network calls.
+
 ## [0.10.1] – 2026-05-03
 
 ### Fixed
