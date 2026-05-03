@@ -93,7 +93,10 @@ jobs:
           EOF
 
       - name: Install @capacitor/android for plugin compile
-        run: npm install --no-save @capacitor/android@latest
+        # --legacy-peer-deps: @capacitor/android@latest peers @capacitor/core@^8,
+        # but our dev dep pins @capacitor/core@^7. The gradle compile only needs
+        # the Android module from @capacitor/android, not its npm peer graph.
+        run: npm install --no-save --legacy-peer-deps @capacitor/android@latest
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
