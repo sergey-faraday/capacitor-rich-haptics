@@ -63,6 +63,7 @@ jobs:
         run: |
           mkdir -p .ci-android
           cat > .ci-android/settings.gradle <<'EOF'
+          rootProject.name = 'ci-android'
           include ':capacitor-android'
           project(':capacitor-android').projectDir = new File("$rootDir/../node_modules/@capacitor/android/capacitor")
           include ':rich-haptics'
