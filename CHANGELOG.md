@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.10.0] – Unreleased
+## [0.10.1] – 2026-05-03
+
+### Fixed
+
+- **Repository / homepage / bugs URLs** now point to `github.com/sergey-faraday/...` (with hyphen) — the actual GitHub username. v0.10.0 shipped with `sergeyfaraday` (no hyphen), which 404s on GitHub. Same fix applied to the podspec, README badges, issue-template `Discussions` link, playground page, and example app footer.
+- **`bin` field** in `package.json` rewritten from `./bin/cli.js` to `bin/cli.js`. npm 11 silently strips bin entries with the `./` prefix on publish; v0.10.0's `npx capacitor-rich-haptics ...` command did not work as a result.
+
+## [0.10.0] – 2026-05-03
 
 ### Fixed — lint + formatting
 

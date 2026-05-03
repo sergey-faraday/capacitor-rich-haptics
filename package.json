@@ -1,6 +1,6 @@
 {
   "name": "capacitor-rich-haptics",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Capacitor plugin for rich, native-quality haptics. iOS Core Haptics with custom intensity, sharpness, AHAP playback, live parameter modulation, preloading, synchronized audio, 60 built-in patterns, pattern transformations, BPM sync, SVG visualizer, React/Vue adapters, CLI, and live playground.",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
@@ -81,17 +81,17 @@
     "AGENT.md"
   ],
   "bin": {
-    "capacitor-rich-haptics": "./bin/cli.js"
+    "capacitor-rich-haptics": "bin/cli.js"
   },
   "author": "Sergey Faraday",
   "license": "MIT",
-  "homepage": "https://github.com/sergeyfaraday/capacitor-rich-haptics",
+  "homepage": "https://github.com/sergey-faraday/capacitor-rich-haptics",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sergeyfaraday/capacitor-rich-haptics.git"
+    "url": "git+https://github.com/sergey-faraday/capacitor-rich-haptics.git"
   },
   "bugs": {
-    "url": "https://github.com/sergeyfaraday/capacitor-rich-haptics/issues"
+    "url": "https://github.com/sergey-faraday/capacitor-rich-haptics/issues"
   },
   "keywords": [
     "capacitor",
@@ -138,8 +138,12 @@
     "vue": ">=3.0.0"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true },
-    "vue": { "optional": true }
+    "react": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@capacitor/core": "^7.0.0",

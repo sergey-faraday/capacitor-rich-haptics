@@ -879,7 +879,7 @@ CI (`.github/workflows/ci.yml`) runs three jobs on every PR:
 
 # Resources
 
-- README: full API docs at https://github.com/sergeyfaraday/capacitor-rich-haptics
+- README: full API docs at https://github.com/sergey-faraday/capacitor-rich-haptics
 - Apple AHAP Visualizer (Mac): create AHAP files visually then `playAHAP({ name })` (iOS) or paste JSON into `playAHAPFromString`
 - Apple HIG — [Playing haptics](https://developer.apple.com/design/human-interface-guidelines/playing-haptics): when to use haptic feedback (and when not to)
 - Android Composition primitives: [`VibrationEffect.Composition`](https://developer.android.com/reference/android/os/VibrationEffect.Composition)

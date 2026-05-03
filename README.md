@@ -1,6 +1,6 @@
 # capacitor-rich-haptics
 
-[![CI](https://github.com/sergeyfaraday/capacitor-rich-haptics/actions/workflows/ci.yml/badge.svg)](https://github.com/sergeyfaraday/capacitor-rich-haptics/actions/workflows/ci.yml)
+[![CI](https://github.com/sergey-faraday/capacitor-rich-haptics/actions/workflows/ci.yml/badge.svg)](https://github.com/sergey-faraday/capacitor-rich-haptics/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/capacitor-rich-haptics)](https://www.npmjs.com/package/capacitor-rich-haptics)
 [![coverage](https://img.shields.io/badge/coverage-93%25-brightgreen)](./bench/RESULTS.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
@@ -654,7 +654,7 @@ The JS layer is sub-microsecond for all builder/transform operations and ~10µs 
 Standalone web page for authoring patterns with the builder, visualizing them live, and copying the resulting AHAP JSON. Static — drop into Vercel / GitHub Pages.
 
 ```bash
-git clone https://github.com/sergeyfaraday/capacitor-rich-haptics
+git clone https://github.com/sergey-faraday/capacitor-rich-haptics
 cd capacitor-rich-haptics
 npm install && npm run build
 npx http-server playground -p 8080
