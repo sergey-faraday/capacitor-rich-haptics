@@ -32,6 +32,26 @@ const DEFAULTS: Required<Omit<VisualizerOptions, 'duration' | 'title'>> = {
   showAxis: true,
 };
 
+const sanitizePositiveNumber = (value: number | undefined, fallback: number, min = 1): number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= min ? value : fallback;
+
+const sanitizeDuration = (value: number | undefined, fallback: number): number =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
+
+const sanitizeColor = (value: string | undefined, fallback: string): string => {
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  if (/^#[0-9a-f]{3}([0-9a-f]{3})?([0-9a-f]{2})?$/i.test(trimmed)) return trimmed;
+  if (/^[a-zA-Z]+$/.test(trimmed)) return trimmed;
+  if (/^rgba?\(\s*\d{1,3}%?\s*,\s*\d{1,3}%?\s*,\s*\d{1,3}%?(\s*,\s*(0|1|0?\.\d+))?\s*\)$/i.test(trimmed)) {
+    return trimmed;
+  }
+  if (/^hsla?\(\s*\d{1,3}(deg)?\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%(\s*,\s*(0|1|0?\.\d+))?\s*\)$/i.test(trimmed)) {
+    return trimmed;
+  }
+  return fallback;
+};
+
 const isEvent = (el: AHAPElement): el is { Event: AHAPEvent } => 'Event' in el;
 const isCurve = (el: AHAPElement): el is { ParameterCurve: AHAPParameterCurve } => 'ParameterCurve' in el;
 
@@ -54,7 +74,15 @@ const getParam = (event: AHAPEvent, id: string, fallback: number): number => {
  *   renderHapticTimelineSVG(patterns.heartbeat, { title: 'heartbeat' });
  */
 export function renderHapticTimelineSVG(pattern: AHAPPattern, options: VisualizerOptions = {}): string {
-  const opts = { ...DEFAULTS, ...options };
+  const opts = {
+    width: sanitizePositiveNumber(options.width, DEFAULTS.width),
+    height: sanitizePositiveNumber(options.height, DEFAULTS.height),
+    background: sanitizeColor(options.background, DEFAULTS.background),
+    intensityColor: sanitizeColor(options.intensityColor, DEFAULTS.intensityColor),
+    sharpnessColor: sanitizeColor(options.sharpnessColor, DEFAULTS.sharpnessColor),
+    axisColor: sanitizeColor(options.axisColor, DEFAULTS.axisColor),
+    showAxis: options.showAxis ?? DEFAULTS.showAxis,
+  };
   const w = opts.width;
   const h = opts.height;
   const padX = 16;
@@ -66,7 +94,7 @@ export function renderHapticTimelineSVG(pattern: AHAPPattern, options: Visualize
   const intensityBandH = innerH / 2 - 4;
   const sharpnessBandH = innerH / 2 - 4;
 
-  const totalDuration = options.duration ?? Math.max(getPatternDuration(pattern), 0.1);
+  const totalDuration = sanitizeDuration(options.duration, Math.max(getPatternDuration(pattern), 0.1));
   const xFor = (t: number) => padX + (t / totalDuration) * innerW;
 
   const parts: string[] = [];

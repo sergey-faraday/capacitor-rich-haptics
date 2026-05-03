@@ -81,7 +81,6 @@ jobs:
             minSdkVersion = 23
             compileSdkVersion = 35
             targetSdkVersion = 35
-            androidxAppCompatVersion = '1.7.0'
             junitVersion = '4.13.2'
             androidxJunitVersion = '1.2.1'
             androidxEspressoCoreVersion = '3.6.1'
@@ -94,10 +93,7 @@ jobs:
           EOF
 
       - name: Install @capacitor/android for plugin compile
-        # --legacy-peer-deps: @capacitor/android@latest peers @capacitor/core@^8,
-        # but our dev dep pins @capacitor/core@^7. The gradle compile only needs
-        # the Android module from @capacitor/android, not its npm peer graph.
-        run: npm install --no-save --legacy-peer-deps @capacitor/android@latest
+        run: npm install --no-save --legacy-peer-deps @capacitor/android@7.4.3
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4

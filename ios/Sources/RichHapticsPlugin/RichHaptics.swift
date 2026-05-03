@@ -10,6 +10,7 @@ public class RichHapticsEngine {
     private var continuousPlayers: [String: CHHapticAdvancedPatternPlayer] = [:]
     private var preloaded: [String: CHHapticPatternPlayer] = [:]
     private var audioResources: [String: CHHapticAudioResourceID] = [:]
+    private var audioResourcePaths: [String: String] = [:]
     private var isEngineRunning = false
 
     /// Called whenever the engine resets and rebuilds itself (e.g. after audio session interruption).
@@ -44,6 +45,14 @@ public class RichHapticsEngine {
             "registeredAudioCount": audioResources.count,
             "lastError": lastError as Any,
         ]
+    }
+
+    public func recordError(_ message: String) {
+        lastError = message
+    }
+
+    public func clearError() {
+        lastError = nil
     }
 
     /// True if the user has not disabled haptics in OS settings.
@@ -253,6 +262,24 @@ public class RichHapticsEngine {
 
         let resourceID = try engine.registerAudioResource(url, options: [:])
         audioResources[id] = resourceID
+        audioResourcePaths[id] = url.path
+    }
+
+    public func resolveAudioReferences(_ obj: Any) -> Any {
+        if var dict = obj as? [String: Any] {
+            if let id = dict["EventWaveformPath"] as? String,
+               let path = audioResourcePaths[id] {
+                dict["EventWaveformPath"] = path
+            }
+            for (key, value) in dict {
+                dict[key] = resolveAudioReferences(value)
+            }
+            return dict
+        }
+        if let arr = obj as? [Any] {
+            return arr.map { resolveAudioReferences($0) }
+        }
+        return obj
     }
 
     // MARK: - Engine lifecycle

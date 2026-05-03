@@ -69,6 +69,11 @@ public class RichHapticsPlugin extends Plugin {
         }
 
         float intensity = clamp01(call.getFloat("intensity", 1.0f) * intensityScale);
+        if (intensity <= 0f) {
+            clearLastError();
+            call.resolve();
+            return;
+        }
         float sharpness = clamp01(call.getFloat("sharpness", 0.5f));
         double duration = call.getDouble("duration", 0.0);
 
@@ -77,6 +82,7 @@ public class RichHapticsPlugin extends Plugin {
         else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             vibrator.vibrate(duration > 0 ? Math.max(1, (long) (duration * 1000)) : 20);
         }
+        clearLastError();
         call.resolve();
     }
 
@@ -88,6 +94,7 @@ public class RichHapticsPlugin extends Plugin {
         }
         String name = call.getString("name", "softTap");
         playPresetByName(name);
+        clearLastError();
         call.resolve();
     }
 
@@ -99,15 +106,15 @@ public class RichHapticsPlugin extends Plugin {
         }
         JSObject pattern = call.getObject("pattern");
         if (pattern == null) {
-            call.reject("Must provide pattern");
+            reject(call, "Must provide pattern");
             return;
         }
         try {
-            playAHAPJson(pattern.toString());
+            if (!playAHAPJson(pattern.toString())) playMapped(0.7f, 0.5f, 0.0);
+            clearLastError();
             call.resolve();
         } catch (Exception e) {
-            playMapped(0.7f * intensityScale, 0.5f, 0.0);
-            call.resolve();
+            reject(call, "playPattern error: " + e.getMessage());
         }
     }
 
@@ -115,6 +122,7 @@ public class RichHapticsPlugin extends Plugin {
     public void playAHAP(PluginCall call) {
         // Bundle-loaded AHAP files are iOS-only. Approximate with a soft tap.
         if (enabled && hasVibrator()) playPresetByName("softTap");
+        clearLastError();
         call.resolve();
     }
 
@@ -126,15 +134,15 @@ public class RichHapticsPlugin extends Plugin {
         }
         String json = call.getString("json");
         if (json == null) {
-            call.reject("Must provide AHAP JSON string");
+            reject(call, "Must provide AHAP JSON string");
             return;
         }
         try {
-            playAHAPJson(json);
+            if (!playAHAPJson(json)) playMapped(0.7f, 0.5f, 0.0);
+            clearLastError();
             call.resolve();
         } catch (Exception e) {
-            playMapped(0.7f, 0.5f, 0.0);
-            call.resolve();
+            reject(call, "playAHAPFromString error: " + e.getMessage());
         }
     }
 
@@ -143,6 +151,7 @@ public class RichHapticsPlugin extends Plugin {
         if (vibrator != null) vibrator.cancel();
         for (ContinuousLoop loop : continuousLoops.values()) loop.cancel();
         continuousLoops.clear();
+        clearLastError();
         call.resolve();
     }
 
@@ -162,6 +171,7 @@ public class RichHapticsPlugin extends Plugin {
         loop.start();
         JSObject ret = new JSObject();
         ret.put("id", id);
+        clearLastError();
         call.resolve(ret);
     }
 
@@ -169,7 +179,7 @@ public class RichHapticsPlugin extends Plugin {
     public void updateParameters(PluginCall call) {
         String id = call.getString("id");
         if (id == null) {
-            call.reject("Must provide id");
+            reject(call, "Must provide id");
             return;
         }
         ContinuousLoop loop = continuousLoops.get(id);
@@ -177,6 +187,7 @@ public class RichHapticsPlugin extends Plugin {
             if (call.hasOption("intensity")) loop.intensity = clamp01(call.getFloat("intensity", loop.intensity) * intensityScale);
             if (call.hasOption("sharpness")) loop.sharpness = clamp01(call.getFloat("sharpness", loop.sharpness));
         }
+        clearLastError();
         call.resolve();
     }
 
@@ -184,11 +195,12 @@ public class RichHapticsPlugin extends Plugin {
     public void stopPlayer(PluginCall call) {
         String id = call.getString("id");
         if (id == null) {
-            call.reject("Must provide id");
+            reject(call, "Must provide id");
             return;
         }
         ContinuousLoop loop = continuousLoops.remove(id);
         if (loop != null) loop.cancel();
+        clearLastError();
         call.resolve();
     }
 
@@ -198,7 +210,7 @@ public class RichHapticsPlugin extends Plugin {
     public void preload(PluginCall call) {
         String id = call.getString("id");
         if (id == null) {
-            call.reject("Must provide id");
+            reject(call, "Must provide id");
             return;
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -208,10 +220,18 @@ public class RichHapticsPlugin extends Plugin {
 
         if (call.hasOption("pattern")) {
             JSObject pattern = call.getObject("pattern");
+            if (pattern == null) {
+                reject(call, "Must provide pattern");
+                return;
+            }
             try {
                 VibrationEffect effect = buildEffectFromAHAP(pattern.toString());
+                if (effect == null) effect = buildEffect(clamp01(0.7f * intensityScale), 0.5f, 0.0, null);
                 if (effect != null) preloaded.put(id, effect);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                reject(call, "preload error: " + e.getMessage());
+                return;
+            }
         } else {
             float intensity = clamp01(call.getFloat("intensity", 1.0f) * intensityScale);
             float sharpness = clamp01(call.getFloat("sharpness", 0.5f));
@@ -219,6 +239,7 @@ public class RichHapticsPlugin extends Plugin {
             VibrationEffect effect = buildEffect(intensity, sharpness, duration, null);
             if (effect != null) preloaded.put(id, effect);
         }
+        clearLastError();
         call.resolve();
     }
 
@@ -229,9 +250,17 @@ public class RichHapticsPlugin extends Plugin {
             return;
         }
         String id = call.getString("id");
+        if (id == null) {
+            reject(call, "Must provide id");
+            return;
+        }
         VibrationEffect effect = preloaded.get(id);
         if (effect != null) vibrator.vibrate(effect);
-        else playMapped(0.7f, 0.5f, 0.0);
+        else {
+            reject(call, "No preloaded pattern with id '" + id + "'");
+            return;
+        }
+        clearLastError();
         call.resolve();
     }
 
@@ -239,6 +268,7 @@ public class RichHapticsPlugin extends Plugin {
     public void unload(PluginCall call) {
         String id = call.getString("id");
         if (id != null) preloaded.remove(id);
+        clearLastError();
         call.resolve();
     }
 
@@ -261,6 +291,7 @@ public class RichHapticsPlugin extends Plugin {
     public void registerAudio(PluginCall call) {
         // Synchronized audio + haptics is iOS-only via CHHapticEngine.
         // App authors should pair this with a regular audio plugin on Android.
+        clearLastError();
         call.resolve();
     }
 
@@ -275,6 +306,7 @@ public class RichHapticsPlugin extends Plugin {
             for (ContinuousLoop loop : continuousLoops.values()) loop.cancel();
             continuousLoops.clear();
         }
+        clearLastError();
         call.resolve();
     }
 
@@ -282,6 +314,7 @@ public class RichHapticsPlugin extends Plugin {
     public void isEnabled(PluginCall call) {
         JSObject ret = new JSObject();
         ret.put("enabled", enabled);
+        clearLastError();
         call.resolve(ret);
     }
 
@@ -289,6 +322,7 @@ public class RichHapticsPlugin extends Plugin {
     public void setIntensityScale(PluginCall call) {
         float raw = call.getFloat("scale", 1.0f);
         intensityScale = Math.max(0f, Math.min(1f, raw));
+        clearLastError();
         call.resolve();
     }
 
@@ -296,6 +330,7 @@ public class RichHapticsPlugin extends Plugin {
     public void getIntensityScale(PluginCall call) {
         JSObject ret = new JSObject();
         ret.put("scale", intensityScale);
+        clearLastError();
         call.resolve(ret);
     }
 
@@ -303,6 +338,32 @@ public class RichHapticsPlugin extends Plugin {
 
     private boolean hasVibrator() {
         return vibrator != null && vibrator.hasVibrator();
+    }
+
+    private void clearLastError() {
+        lastError = null;
+    }
+
+    private void reject(PluginCall call, String message) {
+        lastError = message;
+        call.reject(message);
+    }
+
+    private boolean isFullStrength() {
+        return intensityScale >= 0.999f;
+    }
+
+    private boolean isMuted() {
+        return intensityScale <= 0f;
+    }
+
+    private float scaled(float intensity) {
+        return clamp01(intensity * intensityScale);
+    }
+
+    private int scaledAmplitude(int amplitude) {
+        if (amplitude <= 0 || isMuted()) return 0;
+        return Math.max(1, Math.min(255, Math.round(amplitude * intensityScale)));
     }
 
     private String engineName() {
@@ -327,6 +388,29 @@ public class RichHapticsPlugin extends Plugin {
         if (sharpness >= 0.7f) return VibrationEffect.Composition.PRIMITIVE_CLICK;
         if (sharpness <= 0.25f) return VibrationEffect.Composition.PRIMITIVE_THUD;
         return VibrationEffect.Composition.PRIMITIVE_TICK;
+    }
+
+    private int supportedPrimitiveOrFallback(int preferred) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || vibrator == null) return -1;
+        if (preferred != -1 && vibrator.areAllPrimitivesSupported(preferred)) return preferred;
+        int[] fallbacks = new int[] {
+            VibrationEffect.Composition.PRIMITIVE_CLICK,
+            VibrationEffect.Composition.PRIMITIVE_TICK,
+            VibrationEffect.Composition.PRIMITIVE_THUD,
+            VibrationEffect.Composition.PRIMITIVE_LOW_TICK
+        };
+        for (int op : fallbacks) {
+            if (vibrator.areAllPrimitivesSupported(op)) return op;
+        }
+        return -1;
+    }
+
+    private boolean canComposeAHAP() {
+        return (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            vibrator != null &&
+            vibrator.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_CLICK)
+        );
     }
 
     /**
@@ -370,10 +454,12 @@ public class RichHapticsPlugin extends Plugin {
     }
 
     private VibrationEffect buildEffect(float intensity, float sharpness, double duration, String primitiveHint) {
+        if (intensity <= 0f) return null;
         if (duration <= 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             int op = primitiveForHint(primitiveHint);
             if (op == -1) op = primitiveForSharpness(sharpness, intensity);
-            if (vibrator.areAllPrimitivesSupported(op)) {
+            op = supportedPrimitiveOrFallback(op);
+            if (op != -1) {
                 return VibrationEffect.startComposition().addPrimitive(op, intensity).compose();
             }
         }
@@ -386,15 +472,16 @@ public class RichHapticsPlugin extends Plugin {
     }
 
     private void playPresetByName(String name) {
+        if (isMuted()) return;
         switch (name) {
             // ── Original 7 ──────────────────────────────────────────────
             case "softTap":
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasPredefined(VibrationEffect.EFFECT_TICK)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && isFullStrength() && hasPredefined(VibrationEffect.EFFECT_TICK)) {
                     vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK));
                 } else playMapped(0.6f, 0.3f, 0.0);
                 break;
             case "sharpClick":
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasPredefined(VibrationEffect.EFFECT_CLICK)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && isFullStrength() && hasPredefined(VibrationEffect.EFFECT_CLICK)) {
                     vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK));
                 } else playMapped(1.0f, 1.0f, 0.0);
                 break;
@@ -405,7 +492,9 @@ public class RichHapticsPlugin extends Plugin {
                 playMapped(0.5f, 0.0f, 0.4);
                 break;
             case "success":
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK)) {
+                if (
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && isFullStrength() && hasPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK)
+                ) {
                     vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK));
                 } else playPattern(new long[] { 0, 12, 60, 18 }, new int[] { 0, 180, 0, 220 });
                 break;
@@ -413,18 +502,22 @@ public class RichHapticsPlugin extends Plugin {
                 playPattern(new long[] { 0, 40, 80, 40 }, new int[] { 0, 200, 0, 200 });
                 break;
             case "error":
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)) {
+                if (
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && isFullStrength() && hasPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+                ) {
                     vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK));
                 } else playPattern(new long[] { 0, 60, 60, 60, 60, 60 }, new int[] { 0, 255, 0, 255, 0, 255 });
                 break;
             // ── UIKit-aligned impacts ───────────────────────────────────
             case "mediumImpact":
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasPredefined(VibrationEffect.EFFECT_CLICK)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && isFullStrength() && hasPredefined(VibrationEffect.EFFECT_CLICK)) {
                     vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK));
                 } else playMapped(0.7f, 0.5f, 0.0);
                 break;
             case "heavyImpact":
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)) {
+                if (
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && isFullStrength() && hasPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+                ) {
                     vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK));
                 } else playMapped(1.0f, 0.7f, 0.0);
                 break;
@@ -435,12 +528,12 @@ public class RichHapticsPlugin extends Plugin {
                     vibrator.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_THUD)
                 ) {
                     vibrator.vibrate(
-                        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, 0.7f).compose()
+                        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, scaled(0.7f)).compose()
                     );
                 } else playMapped(0.7f, 0.2f, 0.0);
                 break;
             case "rigidImpact":
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasPredefined(VibrationEffect.EFFECT_CLICK)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && isFullStrength() && hasPredefined(VibrationEffect.EFFECT_CLICK)) {
                     vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK));
                 } else playMapped(1.0f, 1.0f, 0.0);
                 break;
@@ -451,7 +544,7 @@ public class RichHapticsPlugin extends Plugin {
                     vibrator.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_TICK)
                 ) {
                     vibrator.vibrate(
-                        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, 1.0f).compose()
+                        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, scaled(1.0f)).compose()
                     );
                 } else playMapped(0.5f, 1.0f, 0.0);
                 break;
@@ -461,13 +554,15 @@ public class RichHapticsPlugin extends Plugin {
                     vibrator.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_TICK)
                 ) {
                     vibrator.vibrate(
-                        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, 0.4f).compose()
+                        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, scaled(0.4f)).compose()
                     );
                 } else playMapped(0.4f, 0.9f, 0.0);
                 break;
             // ── Gestures (no direct Vibrator constants — mapped) ────────
             case "longPress":
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)) {
+                if (
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && isFullStrength() && hasPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+                ) {
                     vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK));
                 } else playMapped(0.8f, 0.5f, 0.0);
                 break;
@@ -479,7 +574,9 @@ public class RichHapticsPlugin extends Plugin {
                 break;
             // ── Lighter notification family ────────────────────────────
             case "confirm":
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK)) {
+                if (
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && isFullStrength() && hasPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK)
+                ) {
                     vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK));
                 } else playPattern(new long[] { 0, 12, 50, 12 }, new int[] { 0, 150, 0, 180 });
                 break;
@@ -510,7 +607,9 @@ public class RichHapticsPlugin extends Plugin {
                     vibrator.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL)
                 ) {
                     vibrator.vibrate(
-                        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, 0.4f).compose()
+                        VibrationEffect.startComposition()
+                            .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, scaled(0.4f))
+                            .compose()
                     );
                 } else playMapped(0.4f, 0.3f, 0.04);
                 break;
@@ -520,7 +619,7 @@ public class RichHapticsPlugin extends Plugin {
                     vibrator.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_CLICK)
                 ) {
                     vibrator.vibrate(
-                        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, 0.5f).compose()
+                        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, scaled(0.5f)).compose()
                     );
                 } else playMapped(0.5f, 0.95f, 0.0);
                 break;
@@ -532,12 +631,14 @@ public class RichHapticsPlugin extends Plugin {
                     vibrator.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_LOW_TICK)
                 ) {
                     vibrator.vibrate(
-                        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_LOW_TICK, 1.0f).compose()
+                        VibrationEffect.startComposition()
+                            .addPrimitive(VibrationEffect.Composition.PRIMITIVE_LOW_TICK, scaled(1.0f))
+                            .compose()
                     );
                 } else playMapped(0.2f, 0.4f, 0.0);
                 break;
             case "keyTap":
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasPredefined(VibrationEffect.EFFECT_TICK)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && isFullStrength() && hasPredefined(VibrationEffect.EFFECT_TICK)) {
                     vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK));
                 } else playMapped(0.3f, 0.85f, 0.0);
                 break;
@@ -547,7 +648,7 @@ public class RichHapticsPlugin extends Plugin {
                     vibrator.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_THUD)
                 ) {
                     vibrator.vibrate(
-                        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, 0.6f).compose()
+                        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, scaled(0.6f)).compose()
                     );
                 } else playMapped(0.6f, 0.15f, 0.04);
                 break;
@@ -567,7 +668,8 @@ public class RichHapticsPlugin extends Plugin {
     }
 
     private void playMapped(float intensity, float sharpness, double duration) {
-        VibrationEffect effect = buildEffect(intensity, sharpness, duration, null);
+        if (isMuted()) return;
+        VibrationEffect effect = buildEffect(scaled(intensity), sharpness, duration, null);
         if (effect != null) vibrator.vibrate(effect);
         else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             long ms = duration > 0 ? Math.max(1, (long) (duration * 1000)) : 20;
@@ -576,8 +678,16 @@ public class RichHapticsPlugin extends Plugin {
     }
 
     private void playPattern(long[] timings, int[] amplitudes) {
+        if (isMuted()) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1));
+            int[] scaledAmplitudes = new int[amplitudes.length];
+            boolean hasNonZero = false;
+            for (int i = 0; i < amplitudes.length; i++) {
+                scaledAmplitudes[i] = scaledAmplitude(amplitudes[i]);
+                if (scaledAmplitudes[i] > 0) hasNonZero = true;
+            }
+            if (!hasNonZero) return;
+            vibrator.vibrate(VibrationEffect.createWaveform(timings, scaledAmplitudes, -1));
         } else {
             vibrator.vibrate(timings, -1);
         }
@@ -588,23 +698,21 @@ public class RichHapticsPlugin extends Plugin {
      * extracts HapticTransient events with Intensity/Sharpness parameters,
      * and chains them as Composition primitives spaced by Time deltas.
      */
-    private void playAHAPJson(String json) throws Exception {
+    private boolean playAHAPJson(String json) throws Exception {
         VibrationEffect effect = buildEffectFromAHAP(json);
-        if (effect != null) vibrator.vibrate(effect);
-        else playMapped(0.7f, 0.5f, 0.0);
+        if (effect == null) return false;
+        vibrator.vibrate(effect);
+        return true;
     }
 
     private VibrationEffect buildEffectFromAHAP(String json) throws Exception {
-        if (
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-            !vibrator.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_CLICK)
-        ) {
-            return null;
-        }
-
         JSONObject root = new JSONObject(json);
         JSONArray pattern = root.optJSONArray("Pattern");
-        if (pattern == null || pattern.length() == 0) return null;
+        if (pattern == null || pattern.length() == 0) {
+            throw new IllegalArgumentException("AHAP Pattern must be a non-empty array");
+        }
+
+        if (isMuted() || !canComposeAHAP()) return null;
 
         VibrationEffect.Composition composition = VibrationEffect.startComposition();
         double previousTime = 0;
@@ -617,7 +725,13 @@ public class RichHapticsPlugin extends Plugin {
             if (event == null) continue;
 
             String type = event.optString("EventType", "");
-            if (!"HapticTransient".equals(type) && !"HapticContinuous".equals(type)) continue;
+            if (!"HapticTransient".equals(type) && !"HapticContinuous".equals(type)) {
+                if (type.startsWith("Audio")) continue;
+                throw new IllegalArgumentException("Unsupported AHAP EventType: " + type);
+            }
+            if ("HapticContinuous".equals(type) && !event.has("EventDuration")) {
+                throw new IllegalArgumentException("HapticContinuous requires EventDuration");
+            }
 
             float intensity = 1.0f;
             float sharpness = 0.5f;
@@ -634,6 +748,7 @@ public class RichHapticsPlugin extends Plugin {
             }
 
             double time = event.optDouble("Time", previousTime);
+            if (time < 0) throw new IllegalArgumentException("AHAP event Time must be non-negative");
             int delayMs = (int) Math.max(0, Math.round((time - previousTime) * 1000));
             previousTime = time;
 
@@ -643,6 +758,8 @@ public class RichHapticsPlugin extends Plugin {
             String hint = event.optString("_androidPrimitive", null);
             int op = primitiveForHint(hint);
             if (op == -1) op = primitiveForSharpness(sharpness, intensity);
+            op = supportedPrimitiveOrFallback(op);
+            if (op == -1) return null;
 
             composition.addPrimitive(op, clamp01(intensity * intensityScale), delayMs);
             eventsAdded++;

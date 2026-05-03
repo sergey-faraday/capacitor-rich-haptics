@@ -50,4 +50,20 @@ describe('renderHapticTimelineSVG', () => {
     const svg = renderHapticTimelineSVG(p);
     expect(svg).toContain('<polyline');
   });
+
+  it('sanitizes SVG color options before rendering attributes', () => {
+    const svg = renderHapticTimelineSVG(patterns.heartbeat, {
+      background: 'red" onload="alert(1)',
+      intensityColor: 'url(javascript:alert(1))',
+      sharpnessColor: '#123456',
+      axisColor: 'rgb(10, 20, 30)',
+    });
+
+    expect(svg).not.toContain('onload');
+    expect(svg).not.toContain('javascript:');
+    expect(svg).toContain('fill="#15151c"');
+    expect(svg).toContain('fill="#5eead4"');
+    expect(svg).toContain('fill="#123456"');
+    expect(svg).toContain('rgb(10, 20, 30)');
+  });
 });

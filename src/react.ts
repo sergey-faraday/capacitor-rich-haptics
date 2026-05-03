@@ -349,7 +349,7 @@ export function HapticPressable(props: HapticPressableProps): ReturnType<typeof 
 
 /**
  * Returns `true` when haptics should be suppressed: either the OS-level Reduce
- * Motion is on, or the user disabled them via `RichHaptics.setEnabled(false)`,
+ * Motion is on, or the user disabled them via `RichHaptics.setEnabled({ enabled: false })`,
  * or the device has no vibration hardware.
  *
  * Re-checks on `engineDidReset`. Wire to your accessibility-aware components

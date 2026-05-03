@@ -5,7 +5,7 @@
 [![coverage](https://img.shields.io/badge/coverage-93%25-brightgreen)](./bench/RESULTS.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
-Native-quality haptic feedback for Capacitor — the same nuanced taps and textures you feel in first-party iOS apps, with a real Core Haptics engine, live parameter modulation, AHAP playback, zero-latency preloading, and a built-in pattern library.
+Native-quality haptic feedback for Capacitor — the same nuanced taps and textures you feel in first-party iOS apps, with a real Core Haptics engine, live parameter modulation, AHAP playback, native preloading, and a built-in pattern library.
 
 <!--
   Demo media — record on a real iPhone using the screen recorder + a quiet room
@@ -29,9 +29,9 @@ Native-quality haptic feedback for Capacitor — the same nuanced taps and textu
 - **Core Haptics** on iOS (`CHHapticEngine`) with custom intensity & sharpness
 - **AHAP playback** from bundle file or runtime JSON string
 - **Live parameter modulation** — change intensity/sharpness during playback (drag gestures, scrubbers, breathing exercises)
-- **Zero-latency preloading** — pre-build `CHHapticPatternPlayer` once, fire instantly
+- **Preloading for hot paths** — pre-build native effects where the platform supports it; lowers start latency on iOS and Android 8+
 - **Synchronized audio** — register audio resources, attach to AHAP `EventWaveformPath`
-- **Built-in pattern library** — 60+ ready-made AHAP patterns across 12 categories (game, music, camera, ui, social, mechanical, security, …)
+- **Built-in pattern library** — 60 ready-made AHAP patterns across 12 categories (game, music, camera, ui, social, mechanical, security, …)
 - **Cross-platform UX presets** — **29 single-event presets** covering basic UI, UIKit impacts, selection/picker, gestures, notification family, toggle, UI actions, and specific physical metaphors (typing, collision, ambient loading)
 - **Pattern Builder** — fluent TS API to compose AHAP patterns without writing JSON
 - **Pattern transformations** — `combine`, `repeat`, `scale`, `stretch`, `reverse`, `delay`
@@ -39,7 +39,7 @@ Native-quality haptic feedback for Capacitor — the same nuanced taps and textu
 - **Vue** — same set, idiomatic Composition API + components
 - **Pattern recorder** — record `RichHaptics.*` calls during a gesture, save the trace, replay later (E2E fixtures, designer workflows)
 - **Sequence builder** — `sequence(preset('softTap'), wait(200), preset('success')).play()` composes haptic timelines without setTimeout chains
-- **App-wide kill switch** — `RichHaptics.setEnabled(false)` makes every play call a no-op (wire to a settings toggle without sprinkling `if`s)
+- **App-wide kill switch** — `RichHaptics.setEnabled({ enabled: false })` makes every play call a no-op (wire to a settings toggle without sprinkling `if`s)
 - **Global intensity scale** — `RichHaptics.setIntensityScale({ scale: 0.5 })` for "Haptic intensity" sliders (orthogonal to kill switch)
 - **Tree-shakeable** — each of the 60 patterns is a top-level export; `"sideEffects": false` lets modern bundlers strip unused ones
 - **Test utilities** — `createMockHaptics()` for Jest / Vitest
@@ -127,9 +127,9 @@ element.addEventListener('pointerup', () => RichHaptics.stopPlayer({ id }));
 
 On Android the plugin simulates this by re-triggering `Composition` primitives at ~30Hz — not as smooth as iOS, but works.
 
-## Zero-latency preloading
+## Preloading
 
-For frequently-fired haptics (typing ticks, button presses, scrubber feedback), preload once and fire with sub-millisecond start latency.
+For frequently-fired haptics (typing ticks, button presses, scrubber feedback), preload once and fire with lower start latency. iOS caches `CHHapticPatternPlayer`, Android 8+ caches `VibrationEffect`, and web accepts the calls as a best-effort no-op.
 
 ```ts
 // Once, on mount:
@@ -137,7 +137,7 @@ await RichHaptics.preload({ id: 'typeTick', intensity: 0.25, sharpness: 0.8 });
 
 // Hot path — keystrokes:
 keyboardElement.addEventListener('keydown', () => {
-  RichHaptics.playPreloaded({ id: 'typeTick' });  // ~0ms latency
+  RichHaptics.playPreloaded({ id: 'typeTick' });
 });
 
 // Done:
@@ -188,9 +188,16 @@ await RichHaptics.playPattern({ pattern: patterns.heartbeat });
 
 Use the named imports in production hot paths; use the `patterns` object in playgrounds, dashboards, and pattern pickers.
 
+All public entrypoints are available as ESM imports and CommonJS requires:
+
+```js
+const { RichHaptics } = require('capacitor-rich-haptics');
+const { HapticButton } = require('capacitor-rich-haptics/react');
+```
+
 ## Built-in pattern library
 
-45+ patterns across 11 categories. Discover by name or by category:
+60 patterns across 12 categories. Discover by name or by category:
 
 ```ts
 import { patterns, patternsByCategory } from 'capacitor-rich-haptics';
@@ -207,14 +214,15 @@ const games = patternsByCategory('game');
 | `body`          | `heartbeat`, `breatheIn`, `breatheOut` |
 | `nature`        | `waterDrop`, `raindrops`, `thunder`, `wind` |
 | `mechanical`    | `lockClick`, `keyJangle`, `watchTick`, `gearShift`, `dialPad`, `ratchet` |
-| `ui`            | `typewriter`, `refreshPull`, `swipeReveal`, `deletePop` |
+| `ui`            | `typewriter`, `refreshPull`, `swipeReveal`, `deletePop`, `tabSwitch`, `pageTransition`, `modalOpen`, `modalClose`, `pullThreshold`, `pullRelease`, `copy`, `paste` |
 | `game`          | `levelUp`, `explosion`, `gameOver`, `jump`, `hit`, `powerUp`, `parry`, `shield` |
 | `music`         | `drumKick`, `drumSnare`, `pianoKey`, `guitarStrum` |
 | `camera`        | `shutter`, `focusLock` |
-| `notifications` | `successFanfare`, `errorBuzz`, `ping`, `gentleWakeup` |
-| `effects`       | `applause`, `magicSparkle`, `boing`, `rumble`, `bounce`, `balloonPop` |
+| `notifications` | `successFanfare`, `errorBuzz`, `ping`, `gentleWakeup`, `messageReceive`, `messageSend` |
+| `social`        | `liked`, `share` |
+| `effects`       | `applause`, `magicSparkle`, `boing`, `rumble`, `bounce`, `balloonPop`, `cardFlip`, `pageTurn` |
 | `finance`       | `coinFlip`, `paymentSuccess` |
-| `security`      | `biometricSuccess`, `biometricFail` |
+| `security`      | `biometricSuccess`, `biometricFail`, `unlock` |
 
 ## Pattern transformations
 
@@ -433,14 +441,14 @@ Drop-in replacements for `UIImpactFeedbackGenerator` styles. Migrate from `@capa
 | iOS 14+ (A13+)       | `CHHapticEngine` (full intensity + sharpness)| ✓         | ✓                | ✓ (smooth)        |
 | iOS 14+ (pre-A13)    | no-op                                        | ✗         | ✗                | ✗                 |
 | Android 12+ (API 31) | `VibrationEffect.Composition`                | approx.   | approx.          | ~30Hz re-trigger  |
-| Android 8+ (API 26)  | `VibrationEffect.createOneShot` + amplitude  | approx.   | approx.          | ~30Hz re-trigger  |
-| Android <8           | `vibrator.vibrate(ms)`                       | approx.   | approx.          | ✗                 |
+| Android 8+ (API 26)  | `VibrationEffect.createOneShot` + amplitude  | fallback  | fallback         | ~30Hz re-trigger  |
+| Android <8           | `vibrator.vibrate(ms)`                       | fallback  | fallback         | ✗                 |
 | Web (mobile)         | `navigator.vibrate(ms)`                      | approx.   | approx.          | Web Audio osc.    |
 | Web (desktop)        | Web Audio API click                          | approx.   | approx.          | Web Audio osc.    |
 
 ## Accessibility
 
-`isSupported()` returns `userEnabled: false` when the user has Reduce Motion / System Haptics disabled in iOS Settings. Honour it:
+`isSupported()` returns `userEnabled: false` when iOS Reduce Motion is enabled. iOS does not expose a reliable public API for reading the global System Haptics setting, so persist your own app-level preference with `setEnabled`.
 
 ```ts
 const { userEnabled } = await RichHaptics.isSupported();
@@ -558,7 +566,7 @@ await RichHaptics.setIntensityScale({ scale: 0.5 });   // 50% strength globally
 await RichHaptics.getIntensityScale();                 // → { scale: 0.5 }
 ```
 
-Affects `play`, `preset`, `playPattern`, `startContinuous`, `updateParameters`, `preload` (with intensity option). Doesn't retroactively rescale already-preloaded patterns — call `unload` + `preload` to re-apply. For complete silence, prefer `setEnabled(false)` (true kill switch).
+Affects `play`, `preset`, `playPattern`, `startContinuous`, `updateParameters`, and new `preload` calls. Doesn't retroactively rescale already-preloaded patterns — call `unload` + `preload` to re-apply. For a true app-level kill switch, use `setEnabled({ enabled: false })`.
 
 Combined with `setEnabled`, you have two orthogonal controls — perfect for a settings UI:
 
@@ -634,6 +642,8 @@ if (issues.length > 0) console.warn('AHAP issues:', issues);
 
 await RichHaptics.playPattern({ pattern: json });
 ```
+
+Malformed AHAP rejects on native platforms. Android falls back only when the pattern is valid but the device/API cannot represent it with richer primitives.
 
 ## Performance
 

@@ -81,6 +81,21 @@ describe('scale', () => {
     const s = scale(simple(), { intensity: 0.5 });
     expect(event(1)(s).Time).toBeCloseTo(0.1);
   });
+
+  it('scales HapticIntensityControl parameter curve points', () => {
+    const original = ahap()
+      .continuous({ duration: 0.5, intensity: 0.8 })
+      .rampIntensity({ from: 0.8, to: 0.4, duration: 0.5 })
+      .build();
+
+    const s = scale(original, { intensity: 0.5 });
+    const curve = s.Pattern[1];
+
+    expect('ParameterCurve' in curve && curve.ParameterCurve.ParameterCurveControlPoints).toEqual([
+      { Time: 0, ParameterValue: 0.4 },
+      { Time: 0.5, ParameterValue: 0.2 },
+    ]);
+  });
 });
 
 describe('stretch', () => {

@@ -111,6 +111,28 @@ describe('createHapticRecorder', () => {
     expect(mock.callsTo('preset').length).toBe(1); // never fired
   });
 
+  it('replay cancel() resolves the replay promise when pending calls are cleared', async () => {
+    const mock = createMockHaptics();
+    const recorder = createHapticRecorder(mock);
+
+    const recording = {
+      events: [
+        { method: 'preset', args: [{ name: 'softTap' }], at: 100 },
+        { method: 'preset', args: [{ name: 'success' }], at: 200 },
+      ],
+      duration: 200,
+      startedAt: 0,
+    };
+
+    const { promise, cancel } = recorder.replay(recording);
+    cancel();
+
+    await expect(promise).resolves.toBeUndefined();
+    vi.advanceTimersByTime(500);
+    await Promise.resolve();
+    expect(mock.callsTo('preset').length).toBe(0);
+  });
+
   it('empty recording resolves immediately', async () => {
     const mock = createMockHaptics();
     const recorder = createHapticRecorder(mock);

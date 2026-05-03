@@ -140,8 +140,10 @@ export function createHapticRecorder(plugin: RichHapticsPlugin = defaultPlugin):
       const target = plugin as unknown as Record<string, (...args: unknown[]) => unknown>;
       const handles: ReturnType<typeof setTimeout>[] = [];
       let cancelled = false;
+      let resolveReplay: (() => void) | null = null;
 
       const promise = new Promise<void>((resolve) => {
+        resolveReplay = resolve;
         if (rec.events.length === 0) {
           resolve();
           return;
@@ -164,7 +166,10 @@ export function createHapticRecorder(plugin: RichHapticsPlugin = defaultPlugin):
               }
             }
             remaining -= 1;
-            if (remaining === 0) resolve();
+            if (remaining === 0) {
+              resolveReplay = null;
+              resolve();
+            }
           }, ev.at);
           handles.push(handle);
         }
@@ -175,6 +180,12 @@ export function createHapticRecorder(plugin: RichHapticsPlugin = defaultPlugin):
         cancel: () => {
           cancelled = true;
           handles.forEach(clearTimeout);
+          handles.length = 0;
+          if (resolveReplay !== null) {
+            const resolve = resolveReplay;
+            resolveReplay = null;
+            resolve();
+          }
         },
       };
     },

@@ -109,6 +109,7 @@ function makeSequence(steps: SequenceStep[]): HapticSequence {
     play(): SequenceHandle {
       let cancelled = false;
       let timer: ReturnType<typeof setTimeout> | null = null;
+      let resolveWait: (() => void) | null = null;
       let running = true;
 
       const promise = (async () => {
@@ -130,8 +131,10 @@ function makeSequence(steps: SequenceStep[]): HapticSequence {
             return RichHaptics.playPattern({ pattern: step.pattern }).catch(() => undefined);
           case 'wait':
             return new Promise((resolve) => {
+              resolveWait = resolve;
               timer = setTimeout(() => {
                 timer = null;
+                resolveWait = null;
                 resolve();
               }, step.ms);
             });
@@ -159,6 +162,11 @@ function makeSequence(steps: SequenceStep[]): HapticSequence {
           if (timer !== null) {
             clearTimeout(timer);
             timer = null;
+          }
+          if (resolveWait !== null) {
+            const resolve = resolveWait;
+            resolveWait = null;
+            resolve();
           }
         },
       };

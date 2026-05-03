@@ -1,7 +1,7 @@
 {
   "name": "capacitor-rich-haptics",
   "version": "0.10.0",
-  "description": "Capacitor plugin for rich, native-quality haptics. iOS Core Haptics with custom intensity, sharpness, AHAP playback, live parameter modulation, zero-latency preloading, synchronized audio, 45+ built-in patterns, pattern transformations, BPM sync, SVG visualizer, React/Vue adapters, CLI, and live playground.",
+  "description": "Capacitor plugin for rich, native-quality haptics. iOS Core Haptics with custom intensity, sharpness, AHAP playback, live parameter modulation, preloading, synchronized audio, 60 built-in patterns, pattern transformations, BPM sync, SVG visualizer, React/Vue adapters, CLI, and live playground.",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
@@ -10,51 +10,62 @@
   "exports": {
     ".": {
       "import": "./dist/esm/index.js",
-      "require": "./dist/plugin.cjs.js",
+      "require": "./dist/cjs/index.cjs",
       "types": "./dist/esm/index.d.ts"
     },
     "./react": {
       "import": "./dist/esm/react.js",
+      "require": "./dist/cjs/react.cjs",
       "types": "./dist/esm/react.d.ts"
     },
     "./vue": {
       "import": "./dist/esm/vue.js",
+      "require": "./dist/cjs/vue.cjs",
       "types": "./dist/esm/vue.d.ts"
     },
     "./patterns": {
       "import": "./dist/esm/patterns.js",
+      "require": "./dist/cjs/patterns.cjs",
       "types": "./dist/esm/patterns.d.ts"
     },
     "./ahap": {
       "import": "./dist/esm/ahap.js",
+      "require": "./dist/cjs/ahap.cjs",
       "types": "./dist/esm/ahap.d.ts"
     },
     "./transforms": {
       "import": "./dist/esm/transforms.js",
+      "require": "./dist/cjs/transforms.cjs",
       "types": "./dist/esm/transforms.d.ts"
     },
     "./testing": {
       "import": "./dist/esm/testing.js",
+      "require": "./dist/cjs/testing.cjs",
       "types": "./dist/esm/testing.d.ts"
     },
     "./validate": {
       "import": "./dist/esm/validate.js",
+      "require": "./dist/cjs/validate.cjs",
       "types": "./dist/esm/validate.d.ts"
     },
     "./recorder": {
       "import": "./dist/esm/recorder.js",
+      "require": "./dist/cjs/recorder.cjs",
       "types": "./dist/esm/recorder.d.ts"
     },
     "./sequence": {
       "import": "./dist/esm/sequence.js",
+      "require": "./dist/cjs/sequence.cjs",
       "types": "./dist/esm/sequence.d.ts"
     },
     "./sync": {
       "import": "./dist/esm/sync.js",
+      "require": "./dist/cjs/sync.cjs",
       "types": "./dist/esm/sync.d.ts"
     },
     "./visualizer": {
       "import": "./dist/esm/visualizer.js",
+      "require": "./dist/cjs/visualizer.cjs",
       "types": "./dist/esm/visualizer.d.ts"
     }
   },

@@ -95,18 +95,41 @@ export function scale(pattern: AHAPPattern, factors: { intensity?: number; sharp
   const fS = factors.sharpness ?? 1;
 
   const next = pattern.Pattern.map((el): AHAPElement => {
-    if (!isEvent(el)) return el;
-    const event = el.Event;
-    const params = (event.EventParameters ?? []).map((p): AHAPEventParameter => {
-      if (p.ParameterID === 'HapticIntensity') {
-        return { ...p, ParameterValue: clamp01(p.ParameterValue * fI) };
-      }
-      if (p.ParameterID === 'HapticSharpness') {
-        return { ...p, ParameterValue: clamp01(p.ParameterValue * fS) };
-      }
-      return p;
-    });
-    return { Event: { ...event, EventParameters: params } };
+    if (isEvent(el)) {
+      const event = el.Event;
+      const params = (event.EventParameters ?? []).map((p): AHAPEventParameter => {
+        if (p.ParameterID === 'HapticIntensity') {
+          return { ...p, ParameterValue: clamp01(p.ParameterValue * fI) };
+        }
+        if (p.ParameterID === 'HapticSharpness') {
+          return { ...p, ParameterValue: clamp01(p.ParameterValue * fS) };
+        }
+        return p;
+      });
+      return { Event: { ...event, EventParameters: params } };
+    }
+    if (isParameterCurve(el)) {
+      const curve = el.ParameterCurve;
+      const factor =
+        curve.ParameterID === 'HapticIntensityControl' ? fI : curve.ParameterID === 'HapticSharpnessControl' ? fS : 1;
+      if (factor === 1) return el;
+      return {
+        ParameterCurve: {
+          ...curve,
+          ParameterCurveControlPoints: curve.ParameterCurveControlPoints.map((p) => ({
+            ...p,
+            ParameterValue: clamp01(p.ParameterValue * factor),
+          })),
+        },
+      };
+    }
+    if ('Parameter' in el) {
+      const param = el.Parameter;
+      const factor =
+        param.ParameterID === 'HapticIntensityControl' ? fI : param.ParameterID === 'HapticSharpnessControl' ? fS : 1;
+      return factor === 1 ? el : { Parameter: { ...param, ParameterValue: clamp01(param.ParameterValue * factor) } };
+    }
+    return el;
   });
 
   return { ...pattern, Pattern: next };

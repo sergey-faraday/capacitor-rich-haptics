@@ -101,7 +101,7 @@ function DraggableCard() {
 }
 ```
 
-### React — preloaded haptic for typing (zero-latency)
+### React — preloaded haptic for typing (lower latency)
 
 ```tsx
 import { useEffect } from 'react';
@@ -324,7 +324,7 @@ RichHaptics.preset({ name: 'success' });  // automatically scaled
 
 | Problem | Cause | Fix |
 |---|---|---|
-| Haptic doesn't fire on real iPhone | iOS Reduce Motion or System Haptics off | Check `(await RichHaptics.isSupported()).userEnabled` |
+| Haptic doesn't fire on real iPhone | iOS Reduce Motion, app-level kill switch, missing hardware support, or global System Haptics disabled outside public API visibility | Check `(await RichHaptics.isSupported()).userEnabled`, `await RichHaptics.isEnabled()`, and the iOS Settings app |
 | Haptic doesn't fire after a phone call | Engine reset | Subscribe to `engineDidReset` and re-preload |
 | Haptic feels weak on Android | Device doesn't support Composition primitives | Inspect `(await RichHaptics.isSupported()).engine` — should be `composition`, not `basic` |
 | `playAHAP` rejects with "AHAP file not found" | AHAP file not added to iOS app target | Drag into Xcode with "Copy items if needed" + "Add to targets" checked |
@@ -796,7 +796,7 @@ scripts/sync-docs.js         ← mirrors CLAUDE.md → AGENT.md
 - **All numeric params clamped** to valid ranges. Never trust caller input.
 - **Engine reset clears preloaded players.** When `engineDidReset` fires, app code re-preloads. The native side does NOT auto-restore.
 - **`isSupported()` is the only way to discover capability.** Don't add more capability flags as separate methods.
-- **Kill switch and intensity scale are orthogonal.** `setEnabled(false)` short-circuits all play calls; `setIntensityScale(0.5)` multiplies intensity. Don't conflate.
+- **Kill switch and intensity scale are orthogonal.** `setEnabled({ enabled: false })` short-circuits all play calls; `setIntensityScale({ scale: 0.5 })` multiplies intensity. Don't conflate.
 - **AHAP shape matches Apple's spec exactly.** Many users paste raw AHAP from Apple AHAP Visualizer. Don't add fields that aren't real AHAP — except prefixed with `_` (like `_androidPrimitive`), which we strip on iOS.
 
 ## iOS native conventions

@@ -1,6 +1,8 @@
 import { WebPlugin } from '@capacitor/core';
 
 import type {
+  AHAPElement,
+  AHAPEvent,
   DiagnosticsResult,
   HapticPreset,
   IntensityScaleResult,
@@ -21,6 +23,8 @@ import type {
   UnloadOptions,
   UpdateParametersOptions,
 } from './definitions';
+
+const isEvent = (el: AHAPElement): el is { Event: AHAPEvent } => 'Event' in el;
 
 const PRESET_DURATIONS_MS: Record<HapticPreset, number | number[]> = {
   // Original 7
@@ -133,17 +137,21 @@ export class RichHapticsWeb extends WebPlugin implements RichHapticsPlugin {
   async preset(options: PresetOptions): Promise<void> {
     if (!this.enabled) return;
     if (this.hasVibrate) {
-      navigator.vibrate(PRESET_DURATIONS_MS[options.name] ?? 15);
+      navigator.vibrate(this.scaleVibrationPattern(PRESET_DURATIONS_MS[options.name] ?? 15));
     } else {
       const params = PRESET_AUDIO[options.name] ?? PRESET_AUDIO.softTap;
-      this.playAudioClickRaw(params.freq, params.duration, params.gain);
+      this.playAudioClickRaw(params.freq, params.duration, params.gain * this.intensityScale);
     }
   }
 
-  async playPattern(_: PlayPatternOptions): Promise<void> {
+  async playPattern(options: PlayPatternOptions): Promise<void> {
     if (!this.enabled) return;
-    if (this.hasVibrate) navigator.vibrate(30);
-    else this.playAudioClickRaw(440, 0.04, 0.05);
+    if (this.hasVibrate) {
+      const pattern = this.patternToVibration(options.pattern);
+      navigator.vibrate(pattern.length > 0 ? pattern : this.scaleVibrationPattern(30));
+    } else {
+      this.playAudioClickRaw(440, 0.04, 0.05 * this.intensityScale);
+    }
   }
 
   async playAHAP(): Promise<void> {
@@ -176,7 +184,7 @@ export class RichHapticsWeb extends WebPlugin implements RichHapticsPlugin {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.frequency.value = 60 + (options.sharpness ?? 0.5) * 200;
-    gain.gain.value = (options.intensity ?? 0.5) * 0.05;
+    gain.gain.value = (options.intensity ?? 0.5) * this.intensityScale * 0.05;
     osc.connect(gain).connect(ctx.destination);
     osc.start();
     this.continuousNodes.set(id, { osc, gain });
@@ -188,7 +196,7 @@ export class RichHapticsWeb extends WebPlugin implements RichHapticsPlugin {
     if (!node || !this.audioCtx) return;
     const t = this.audioCtx.currentTime;
     if (options.intensity !== undefined) {
-      node.gain.gain.linearRampToValueAtTime(options.intensity * 0.05, t + 0.02);
+      node.gain.gain.linearRampToValueAtTime(options.intensity * this.intensityScale * 0.05, t + 0.02);
     }
     if (options.sharpness !== undefined) {
       node.osc.frequency.linearRampToValueAtTime(60 + options.sharpness * 200, t + 0.02);
@@ -212,7 +220,7 @@ export class RichHapticsWeb extends WebPlugin implements RichHapticsPlugin {
 
   async playPreloaded(_: PlayPreloadedOptions): Promise<void> {
     if (!this.enabled) return;
-    if (this.hasVibrate) navigator.vibrate(15);
+    if (this.hasVibrate) navigator.vibrate(this.scaleVibrationPattern(15));
   }
 
   async unload(_: UnloadOptions): Promise<void> {
@@ -289,5 +297,48 @@ export class RichHapticsWeb extends WebPlugin implements RichHapticsPlugin {
     osc.connect(gainNode).connect(ctx.destination);
     osc.start(now);
     osc.stop(now + duration + 0.02);
+  }
+
+  private scaleVibrationPattern(pattern: number | number[]): number | number[] {
+    if (this.intensityScale <= 0) return 0;
+    if (typeof pattern === 'number') return Math.max(1, Math.round(pattern * this.intensityScale));
+    return pattern.map((value, index) =>
+      index % 2 === 0 ? Math.max(1, Math.round(value * this.intensityScale)) : Math.max(0, Math.round(value)),
+    );
+  }
+
+  private patternToVibration(pattern: PlayPatternOptions['pattern']): number[] {
+    if (this.intensityScale <= 0) return [];
+    const events = pattern.Pattern.filter(isEvent)
+      .filter((el) => el.Event.EventType === 'HapticTransient' || el.Event.EventType === 'HapticContinuous')
+      .map((el) => {
+        const intensity =
+          el.Event.EventParameters?.find((p) => p.ParameterID === 'HapticIntensity')?.ParameterValue ?? 1;
+        const duration =
+          el.Event.EventType === 'HapticContinuous'
+            ? Math.max(1, Math.round((el.Event.EventDuration ?? 0.03) * 1000))
+            : Math.max(1, Math.round(15 * intensity * this.intensityScale));
+        return {
+          timeMs: Math.max(0, Math.round(el.Event.Time * 1000)),
+          duration,
+          intensity,
+        };
+      })
+      .filter((event) => event.intensity * this.intensityScale > 0 && event.duration > 0)
+      .sort((a, b) => a.timeMs - b.timeMs);
+
+    const output: number[] = [];
+    let cursor = 0;
+    for (const event of events) {
+      const pause = Math.max(0, event.timeMs - cursor);
+      if (output.length === 0) {
+        if (pause > 0) output.push(0, pause);
+      } else {
+        output.push(pause);
+      }
+      output.push(event.duration);
+      cursor = event.timeMs + event.duration;
+    }
+    return output;
   }
 }

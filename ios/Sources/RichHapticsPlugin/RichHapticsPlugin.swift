@@ -55,16 +55,17 @@ public class RichHapticsPlugin: CAPPlugin, CAPBridgedPlugin {
 
         do {
             try haptics.play(intensity: intensity, sharpness: sharpness, duration: duration)
+            haptics.clearError()
             call.resolve()
         } catch {
-            call.reject("Haptic play error: \(error.localizedDescription)")
+            reject(call, "Haptic play error: \(error.localizedDescription)")
         }
     }
 
     @objc func preset(_ call: CAPPluginCall) {
         if !enabled { call.resolve(); return }
         guard let name = call.getString("name") else {
-            call.reject("Must provide preset name")
+            reject(call, "Must provide preset name")
             return
         }
 
@@ -72,58 +73,56 @@ public class RichHapticsPlugin: CAPPlugin, CAPBridgedPlugin {
         let intensity = rawIntensity * intensityScale
         do {
             try haptics.play(intensity: intensity, sharpness: sharpness, duration: duration)
+            haptics.clearError()
             call.resolve()
         } catch {
-            call.reject("Haptic preset error: \(error.localizedDescription)")
+            reject(call, "Haptic preset error: \(error.localizedDescription)")
         }
     }
 
     @objc func playPattern(_ call: CAPPluginCall) {
         if !enabled { call.resolve(); return }
         guard let pattern = call.getObject("pattern") else {
-            call.reject("Must provide AHAP pattern object")
+            reject(call, "Must provide AHAP pattern object")
             return
         }
         do {
-            let sanitized = Self.sanitizeForCoreHaptics(pattern)
-            let scaled = Self.applyIntensityScale(sanitized, scale: intensityScale)
-            let data = try JSONSerialization.data(withJSONObject: scaled, options: [])
-            guard let json = String(data: data, encoding: .utf8) else {
-                call.reject("Pattern could not be serialized to JSON")
-                return
-            }
+            let json = try normalizedPatternJSON(pattern)
             try haptics.playAHAP(json: json)
+            haptics.clearError()
             call.resolve()
         } catch {
-            call.reject("playPattern error: \(error.localizedDescription)")
+            reject(call, "playPattern error: \(error.localizedDescription)")
         }
     }
 
     @objc func playAHAP(_ call: CAPPluginCall) {
         if !enabled { call.resolve(); return }
         guard let name = call.getString("name") else {
-            call.reject("Must provide AHAP file name")
+            reject(call, "Must provide AHAP file name")
             return
         }
         do {
             try haptics.playAHAP(name: name)
+            haptics.clearError()
             call.resolve()
         } catch {
-            call.reject("AHAP error: \(error.localizedDescription)")
+            reject(call, "AHAP error: \(error.localizedDescription)")
         }
     }
 
     @objc func playAHAPFromString(_ call: CAPPluginCall) {
         if !enabled { call.resolve(); return }
         guard let json = call.getString("json") else {
-            call.reject("Must provide AHAP JSON string")
+            reject(call, "Must provide AHAP JSON string")
             return
         }
         do {
-            try haptics.playAHAP(json: json)
+            try haptics.playAHAP(json: try normalizedPatternJSONString(json))
+            haptics.clearError()
             call.resolve()
         } catch {
-            call.reject("AHAP error: \(error.localizedDescription)")
+            reject(call, "AHAP error: \(error.localizedDescription)")
         }
     }
 
@@ -138,15 +137,16 @@ public class RichHapticsPlugin: CAPPlugin, CAPBridgedPlugin {
         let sharpness = call.getFloat("sharpness") ?? 0.5
         do {
             let id = try haptics.startContinuous(intensity: intensity, sharpness: sharpness)
+            haptics.clearError()
             call.resolve(["id": id])
         } catch {
-            call.reject("startContinuous error: \(error.localizedDescription)")
+            reject(call, "startContinuous error: \(error.localizedDescription)")
         }
     }
 
     @objc func updateParameters(_ call: CAPPluginCall) {
         guard let id = call.getString("id") else {
-            call.reject("Must provide player id")
+            reject(call, "Must provide player id")
             return
         }
         let intensity: Float? = call.hasOption("intensity")
@@ -155,39 +155,35 @@ public class RichHapticsPlugin: CAPPlugin, CAPBridgedPlugin {
         let sharpness: Float? = call.hasOption("sharpness") ? call.getFloat("sharpness") : nil
         do {
             try haptics.updateParameters(id: id, intensity: intensity, sharpness: sharpness)
+            haptics.clearError()
             call.resolve()
         } catch {
-            call.reject("updateParameters error: \(error.localizedDescription)")
+            reject(call, "updateParameters error: \(error.localizedDescription)")
         }
     }
 
     @objc func stopPlayer(_ call: CAPPluginCall) {
         guard let id = call.getString("id") else {
-            call.reject("Must provide player id")
+            reject(call, "Must provide player id")
             return
         }
         do {
             try haptics.stopPlayer(id: id)
+            haptics.clearError()
             call.resolve()
         } catch {
-            call.reject("stopPlayer error: \(error.localizedDescription)")
+            reject(call, "stopPlayer error: \(error.localizedDescription)")
         }
     }
 
     @objc func preload(_ call: CAPPluginCall) {
         guard let id = call.getString("id") else {
-            call.reject("Must provide id")
+            reject(call, "Must provide id")
             return
         }
         do {
             if let pattern = call.getObject("pattern") {
-                let sanitized = Self.sanitizeForCoreHaptics(pattern)
-                let scaled = Self.applyIntensityScale(sanitized, scale: intensityScale)
-                let data = try JSONSerialization.data(withJSONObject: scaled, options: [])
-                guard let json = String(data: data, encoding: .utf8) else {
-                    call.reject("Pattern could not be serialized to JSON")
-                    return
-                }
+                let json = try normalizedPatternJSON(pattern)
                 try haptics.preloadAHAP(id: id, json: json)
             } else {
                 let intensity = (call.getFloat("intensity") ?? 1.0) * intensityScale
@@ -195,29 +191,31 @@ public class RichHapticsPlugin: CAPPlugin, CAPBridgedPlugin {
                 let duration = call.getDouble("duration") ?? 0.0
                 try haptics.preloadSimple(id: id, intensity: intensity, sharpness: sharpness, duration: duration)
             }
+            haptics.clearError()
             call.resolve()
         } catch {
-            call.reject("preload error: \(error.localizedDescription)")
+            reject(call, "preload error: \(error.localizedDescription)")
         }
     }
 
     @objc func playPreloaded(_ call: CAPPluginCall) {
         if !enabled { call.resolve(); return }
         guard let id = call.getString("id") else {
-            call.reject("Must provide id")
+            reject(call, "Must provide id")
             return
         }
         do {
             try haptics.playPreloaded(id: id)
+            haptics.clearError()
             call.resolve()
         } catch {
-            call.reject("playPreloaded error: \(error.localizedDescription)")
+            reject(call, "playPreloaded error: \(error.localizedDescription)")
         }
     }
 
     @objc func unload(_ call: CAPPluginCall) {
         guard let id = call.getString("id") else {
-            call.reject("Must provide id")
+            reject(call, "Must provide id")
             return
         }
         haptics.unload(id: id)
@@ -231,14 +229,15 @@ public class RichHapticsPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func registerAudio(_ call: CAPPluginCall) {
         guard let id = call.getString("id"),
               let filename = call.getString("filename") else {
-            call.reject("Must provide id and filename")
+            reject(call, "Must provide id and filename")
             return
         }
         do {
             try haptics.registerAudio(id: id, filename: filename)
+            haptics.clearError()
             call.resolve()
         } catch {
-            call.reject("registerAudio error: \(error.localizedDescription)")
+            reject(call, "registerAudio error: \(error.localizedDescription)")
         }
     }
 
@@ -287,11 +286,24 @@ public class RichHapticsPlugin: CAPPlugin, CAPBridgedPlugin {
         if scale == 1.0 { return obj }
         if let dict = obj as? [String: Any] {
             // Event parameter: { ParameterID: 'HapticIntensity', ParameterValue: <num> }
+            var copy = dict
             if let pid = dict["ParameterID"] as? String,
                (pid == "HapticIntensity" || pid == "HapticIntensityControl"),
-               let v = dict["ParameterValue"] as? Double {
-                var copy = dict
+               let v = numericValue(dict["ParameterValue"]) {
                 copy["ParameterValue"] = max(0.0, min(1.0, v * Double(scale)))
+                return copy
+            }
+            if let pid = dict["ParameterID"] as? String,
+               pid == "HapticIntensityControl",
+               let points = dict["ParameterCurveControlPoints"] as? [Any] {
+                copy["ParameterCurveControlPoints"] = points.map { point in
+                    guard var pointDict = point as? [String: Any],
+                          let v = numericValue(pointDict["ParameterValue"]) else {
+                        return point
+                    }
+                    pointDict["ParameterValue"] = max(0.0, min(1.0, v * Double(scale)))
+                    return pointDict
+                }
                 return copy
             }
             var out: [String: Any] = [:]
@@ -302,6 +314,42 @@ public class RichHapticsPlugin: CAPPlugin, CAPBridgedPlugin {
             return arr.map { applyIntensityScale($0, scale: scale) }
         }
         return obj
+    }
+
+    private static func numericValue(_ value: Any?) -> Double? {
+        if let v = value as? Double { return v }
+        if let v = value as? Float { return Double(v) }
+        if let v = value as? Int { return Double(v) }
+        if let v = value as? NSNumber { return v.doubleValue }
+        return nil
+    }
+
+    private func normalizedPatternJSON(_ obj: Any) throws -> String {
+        let sanitized = Self.sanitizeForCoreHaptics(obj)
+        let audioResolved = haptics.resolveAudioReferences(sanitized)
+        let scaled = Self.applyIntensityScale(audioResolved, scale: intensityScale)
+        let data = try JSONSerialization.data(withJSONObject: scaled, options: [])
+        guard let json = String(data: data, encoding: .utf8) else {
+            throw NSError(domain: "RichHaptics", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "Pattern could not be serialized to JSON",
+            ])
+        }
+        return json
+    }
+
+    private func normalizedPatternJSONString(_ json: String) throws -> String {
+        guard let data = json.data(using: .utf8) else {
+            throw NSError(domain: "RichHaptics", code: 400, userInfo: [
+                NSLocalizedDescriptionKey: "AHAP JSON could not be decoded as UTF-8",
+            ])
+        }
+        let obj = try JSONSerialization.jsonObject(with: data, options: [])
+        return try normalizedPatternJSON(obj)
+    }
+
+    private func reject(_ call: CAPPluginCall, _ message: String) {
+        haptics.recordError(message)
+        call.reject(message)
     }
 
     private static func presetParams(_ name: String) -> (Float, Float, Double) {

@@ -70,6 +70,16 @@ describe('sequence', () => {
     expect(mock.callsTo('preset').length).toBe(1); // success never fired
   });
 
+  it('cancel() resolves the sequence promise while waiting', async () => {
+    const seq = sequence(wait(500), preset('success'));
+    const h = seq.play();
+
+    h.cancel();
+
+    await expect(h.promise).resolves.toBeUndefined();
+    expect(mock.callsTo('preset').length).toBe(0);
+  });
+
   it('repeat(n) replays the sequence n times', async () => {
     const seq = sequence(preset('softTap'), wait(50));
     const looped = seq.repeat(3);

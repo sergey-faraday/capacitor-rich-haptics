@@ -17,4 +17,8 @@ CAP_PLUGIN(RichHapticsPlugin, "RichHaptics",
     CAP_PLUGIN_METHOD(unload, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(registerAudio, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(getDiagnostics, CAPPluginReturnPromise);
+    CAP_PLUGIN_METHOD(setEnabled, CAPPluginReturnPromise);
+    CAP_PLUGIN_METHOD(isEnabled, CAPPluginReturnPromise);
+    CAP_PLUGIN_METHOD(setIntensityScale, CAPPluginReturnPromise);
+    CAP_PLUGIN_METHOD(getIntensityScale, CAPPluginReturnPromise);
 )

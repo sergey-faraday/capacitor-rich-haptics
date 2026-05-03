@@ -305,7 +305,7 @@ export const HapticPressable = defineComponent({
 
 /**
  * Reactive boolean — `true` when haptics should be suppressed (Reduce Motion,
- * `setEnabled(false)`, or no hardware). Re-checks on `engineDidReset`.
+ * `setEnabled({ enabled: false })`, or no hardware). Re-checks on `engineDidReset`.
  *
  * @example
  * <script setup>

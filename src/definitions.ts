@@ -155,7 +155,8 @@ export interface IsSupportedResult {
   engine: HapticEngine;
   /**
    * Whether the user has not disabled haptics in OS settings.
-   * iOS: false if Reduce Motion or System Haptics is off.
+   * iOS: false when Reduce Motion is enabled. iOS does not expose a reliable
+   * public API for reading the global System Haptics setting.
    * Android: typically true unless system-wide vibration is off.
    * When `false`, all play methods become no-ops.
    */
@@ -202,7 +203,7 @@ export interface PlayerOptions {
 }
 
 export interface PreloadOptions {
-  /** Caller-supplied identifier; pass to `playPreloaded` to fire instantly. */
+  /** Caller-supplied identifier; pass to `playPreloaded` for lower-latency playback. */
   id: string;
   /** A single-event pattern as intensity/sharpness/duration, OR a full AHAP pattern. */
   intensity?: number;
@@ -372,13 +373,13 @@ export interface RichHapticsPlugin {
   /** Stop a specific continuous player started with `startContinuous`. */
   stopPlayer(options: PlayerOptions): Promise<void>;
 
-  // ── Preloading (zero-latency playback) ───────────────────────────────────
+  // ── Preloading (lower-latency playback) ──────────────────────────────────
 
   /**
-   * Pre-build a haptic pattern for instant later playback. Pair with
+   * Pre-build a haptic pattern for lower-latency later playback. Pair with
    * `playPreloaded` for hot paths fired hundreds of times (typing ticks,
-   * scroll feedback, button mashing). Reduces per-call latency from ~5-10ms
-   * to under 1ms.
+   * scroll feedback, button mashing). Native platforms can reduce per-call
+   * setup overhead, but exact latency remains device- and OS-dependent.
    *
    * @example
    * // Once, on mount:
@@ -448,8 +449,8 @@ export interface RichHapticsPlugin {
 
   /**
    * Whether the kill switch is currently on. Distinct from `isSupported().userEnabled`,
-   * which reflects OS-level Reduce Motion / system haptics — this one is the
-   * app-level override.
+   * which reflects OS-level Reduce Motion where the platform exposes it — this
+   * one is the app-level override.
    */
   isEnabled(): Promise<IsEnabledResult>;
 
@@ -471,7 +472,7 @@ export interface RichHapticsPlugin {
    * Multiply every haptic's intensity by this scale (0.0–1.0). Useful for
    * "Haptic intensity" sliders in user settings, or for soft-mode during
    * focus mode / late-night UX. Scale of 0 effectively disables haptics
-   * (use `setEnabled(false)` for a true kill switch); scale of 1.0 is the
+   * (use `setEnabled({ enabled: false })` for a true kill switch); scale of 1.0 is the
    * default (no scaling).
    *
    * Applies to `play`, `preset`, `playPattern`, `startContinuous`, and
