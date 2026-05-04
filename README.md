@@ -8,18 +8,20 @@
 Native-quality haptic feedback for Capacitor — the same nuanced taps and textures you feel in first-party iOS apps, with a real Core Haptics engine, live parameter modulation, AHAP playback, native preloading, and a built-in pattern library.
 
 <!--
-  Demo media — record on a real iPhone using the screen recorder + a quiet room
-  to capture the haptic motor as audible buzz, then convert to compact .gif/.webm:
-    ./media/playground.gif       — 5–10s drag-pad demo (intensity ramps with finger)
-    ./media/pattern-library.gif  — scrolling through built-in patterns
-    ./media/recorder.gif         — record + replay flow
-  See ./media/README.md for guidance.
+  Pattern timelines below are rendered via the plugin's own renderHapticTimelineSVG.
+  For real on-device recordings (drag-pad, recorder flow, etc.) see ./media/README.md.
 -->
 
 <p align="center">
-  <a href="https://nicoff.app" rel="noopener">
-    <img src="./media/playground.gif" alt="Drag pad demo — intensity follows the pointer in real time" width="600" />
-  </a>
+  <img src="./media/heartbeat.gif" alt="heartbeat pattern — two pairs of transient taps with the playhead sweeping over 1.08s" width="700" />
+  <br/>
+  <em>The <code>heartbeat</code> pattern — four <code>HapticTransient</code> events, classic two-stage rhythm.</em>
+</p>
+
+<p align="center">
+  <img src="./media/levelUp.gif" alt="levelUp pattern — sustained continuous bar with intensity ramp, capped by a final tap" width="700" />
+  <br/>
+  <em>The <code>levelUp</code> pattern — sustained <code>HapticContinuous</code> with a rising intensity ramp, then a single accent tap.</em>
 </p>
 
 > The official `@capacitor/haptics` plugin only exposes the legacy `UIImpactFeedbackGenerator` API (Light / Medium / Heavy). This plugin gives you the full **Core Haptics** engine on iOS — custom intensity, sharpness, continuous vibrations, AHAP files, and **live parameter modulation** — and maps the same API to Android's modern **`VibrationEffect.Composition`** primitives.
