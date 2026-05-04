@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.3] – 2026-05-04
+
+### Changed
+
+- **README trimmed from 675 to 153 lines.** Was a full reference doc duplicating most of `AGENT.md` / `CLAUDE.md`. Now a focused landing page: highlights, install, quick start, compatibility, live-modulation demo, migration codemod, "why this exists", license, plus a pointer to `AGENT.md` for the deep guide. Big tables (60 patterns, 29 presets) moved out of the npm landing page; they remain in `AGENT.md`. No code or API changes.
+- **README hero** now shows two animated pattern timelines (`heartbeat`, `levelUp`) generated via the plugin's own `renderHapticTimelineSVG`. Replaces the previous broken `./media/playground.gif` placeholder.
+
 ## [0.10.2] – 2026-05-03
 
 ### Fixed
