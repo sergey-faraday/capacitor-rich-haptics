@@ -12,6 +12,15 @@ public class RichHapticsEngine {
     private var audioResourcePaths: [String: String] = [:]
     private var isEngineRunning = false
 
+    /// Wall-clock timestamp of the most recent `play()`. Used to throttle
+    /// rapid-fire transient presets (typewriter, scroll-tick, etc.) so we
+    /// don't saturate `CHHapticEngine`'s ~32-slot player-channel pool and
+    /// trip error -10851 ("Unable to add an additional player channel").
+    /// 25 ms is below the perceptual threshold for distinct haptic events
+    /// — coalescing within that window is invisible to the user.
+    private var lastPlayMonotonic: TimeInterval = 0
+    private let minPlayIntervalSec: TimeInterval = 0.025
+
     /// Called whenever the engine resets and rebuilds itself (e.g. after audio session interruption).
     /// Preloaded players are invalidated and should be recreated.
     public var onReset: (() -> Void)?
@@ -65,16 +74,48 @@ public class RichHapticsEngine {
     public func play(intensity: Float, sharpness: Float, duration: Double) throws {
         guard supportsHaptics, let engine = engine else { return }
 
+        // Throttle — coalesce calls that fire within 25 ms of the last one.
+        // Rapid-fire transient presets (typewriter / scroll-tick) outpace the
+        // engine's ability to release player slots and trip -10851. The user
+        // can't perceive distinct haptic events that close together anyway.
+        let now = ProcessInfo.processInfo.systemUptime
+        if now - lastPlayMonotonic < minPlayIntervalSec {
+            return
+        }
+
         let event = makeEvent(intensity: intensity, sharpness: sharpness, duration: duration, time: 0)
         try ensureRunning(engine)
         let pattern = try CHHapticPattern(events: [event], parameters: [])
-        let player = try engine.makePlayer(with: pattern)
-        try player.start(atTime: CHHapticTimeImmediate)
-        // No retention — transient patterns are <50ms; ARC releases the player
-        // after this scope, freeing the engine's player-channel slot. Retaining
-        // here saturates the channel pool (~32 slots) and produces
-        // CoreHaptics error -10851 ("Unable to add an additional player channel")
-        // after enough rapid plays (typewriter, breathing exercise, etc.).
+
+        do {
+            let player = try engine.makePlayer(with: pattern)
+            try player.start(atTime: CHHapticTimeImmediate)
+            lastPlayMonotonic = now
+            // No retention — ARC releases `player` after this scope. The
+            // engine's internal slot frees once playback finishes; the
+            // throttle above keeps us comfortably below the channel pool.
+        } catch let nsError as NSError where nsError.code == -10851 {
+            // Channel pool exhausted — likely a runaway caller bypassed the
+            // throttle (long pattern still playing, stress test). Reset the
+            // engine so the next call starts clean rather than cascading.
+            recoverFromChannelExhaustion()
+            // Don't retry here — the JS-side fallback handles the miss, and
+            // retrying immediately can deadlock the engine restart.
+            throw nsError
+        }
+    }
+
+    /// Force-stop and rebuild the engine after CoreHaptics signals the
+    /// player-channel pool is full. Cheaper than letting the engine die in
+    /// a half-broken state where every subsequent call also fails.
+    private func recoverFromChannelExhaustion() {
+        engine?.stop(completionHandler: nil)
+        isEngineRunning = false
+        // Drop preloaded players — they're tied to the dying engine.
+        preloaded.removeAll()
+        continuousPlayers.removeAll()
+        prepareEngine()
+        onReset?()
     }
 
     // MARK: - Play AHAP

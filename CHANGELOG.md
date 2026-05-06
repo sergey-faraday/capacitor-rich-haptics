@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.4] – 2026-05-06
+
+### Fixed
+
+- **iOS Core Haptics error -10851 ("Unable to add an additional player channel")** under rapid-fire transient presets (typewriter `typeTick`, scroll `scrollTick`, idle pulses). `engine.makePlayer(...)` was creating a fresh `CHHapticPatternPlayer` per call; the engine retained slots while playback finished, and ~32 calls in a tight burst would saturate the channel pool, after which every subsequent `play()` cascaded into errors until the engine was rebuilt.
+  - **Throttle:** `play()` now coalesces calls that fire within 25 ms of the previous one. Below the haptic perception threshold, so users feel no difference; the engine keeps its slots free.
+  - **Recovery:** if `-10851` does still escape the throttle (long pattern still resident), the engine is force-restarted and preloaded / continuous players are dropped, instead of leaving the engine in a half-broken state where every later call also fails.
+
 ## [0.10.3] – 2026-05-04
 
 ### Changed

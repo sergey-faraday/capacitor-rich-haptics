@@ -1,6 +1,6 @@
 {
   "name": "capacitor-rich-haptics",
-  "version": "0.10.3",
+  "version": "0.10.4",
   "description": "Capacitor plugin for rich, native-quality haptics. iOS Core Haptics with custom intensity, sharpness, AHAP playback, live parameter modulation, preloading, synchronized audio, 60 built-in patterns, pattern transformations, BPM sync, SVG visualizer, React/Vue adapters, CLI, and live playground.",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
